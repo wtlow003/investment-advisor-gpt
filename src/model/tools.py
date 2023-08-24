@@ -1,0 +1,115 @@
+import os
+from typing import Dict, List, Tuple, Union
+
+from langchain import SerpAPIWrapper
+from langchain.agents import Tool
+from langchain.chains import RetrievalQA
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import PyPDFDirectoryLoader, UnstructuredURLLoader
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.llms import BaseLLM
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.tools import BaseTool
+from langchain.vectorstores import Chroma
+from unstructured.cleaners.core import clean, clean_extra_whitespace, remove_punctuation
+
+
+# TODO: disabling it for now as it doesnt work
+# class SearchPromotion(BaseTool):
+#     name: str = "search_promotion"
+#     description: str = "Search latest promotion for all product offerings. Use this when you need to answer prospect's questions on any form of promotion if he buys our products."
+
+#     def _get_promotion_website(self) -> str:
+#         url: str = "https://www.greateasternlife.com/sg/en/personal-insurance/rewards-and-promotions.html"
+
+#         loader = UnstructuredURLLoader(
+#             urls=[url],
+#             mode="single",
+#             post_processors=[clean, remove_punctuation, clean_extra_whitespace],
+#         )
+#         elements = loader.load()
+#         full_text = "".join([e.page_content for e in elements])
+
+#         return full_text
+
+#     def _run(self, query: str) -> Union[str, None]:
+#         """Use tool to get latest promotion."""
+
+#         return self._get_promotion_website()
+
+#     async def _arun(self) -> str:
+#         """Use tool asynchronously."""
+#         raise NotImplementedError("Tool does not support async at the moment.")
+
+#     def _to_args_and_kwargs(self, tool_input: Union[str, Dict]) -> Tuple[Tuple, Dict]:
+#         return (), {}
+
+
+def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
+    """_summary_
+
+    Args:
+        llm (BaseLLM): _description_
+        prospectus (List[str]): _description_
+    """
+
+    loader = PyPDFDirectoryLoader(
+        "/Users/jensen/code/financial-advisor-gpt/data", silent_errors=True
+    )
+    documents = loader.load()
+    for doc in documents:
+        source = doc.metadata["source"].removesuffix(".pdf").split("/")[-1].split("-")
+        product_name = source[2:]
+        plan_type = source[:2]
+        doc.metadata["product_name"] = " ".join(product_name).title()
+        doc.metadata["plan_type"] = " ".join(plan_type)
+
+    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    documents = text_splitter.split_documents(documents)
+
+    if "db" in os.listdir("."):
+        vectordb = Chroma(
+            persist_directory="./db", embedding_function=OpenAIEmbeddings()
+        )
+    else:
+        vectordb = Chroma.from_documents(
+            documents, embedding=OpenAIEmbeddings(), persist_directory="./db"
+        )
+        vectordb.persist()
+
+    knowledge_base = RetrievalQA.from_chain_type(
+        llm=ChatOpenAI(),
+        chain_type="stuff",
+        retriever=vectordb.as_retriever(search_kwargs={"k": 7}),
+    )
+
+    return knowledge_base
+
+
+def get_tools(llm: BaseLLM):
+    """
+    Define tools usable by the Advisor Agent.
+    """
+
+    knowledge_base = setup_knowledge_base(llm, [])
+    params = {"engine": "google", "gl": "sg", "hl": "en"}
+    search = SerpAPIWrapper(params=params)
+    tools = [
+        Tool(
+            name="WebSearch",
+            func=search.run,
+            description="Search the web if knowledge base does not answer the prospect answer. Use this more if it involves world matters or localised topics outside of our products.",
+        ),
+        Tool(
+            name="ProductSearch",
+            func=knowledge_base.run,
+            description="Knowledge containing our latest products. Use this more if the prospect is more interested in what we product do we have.",
+        ),
+        # Tool(
+        #     name="SearchPromotion",
+        #     func=SearchPromotion.run,
+        #     description="Use this when you need to answer prospect's questions on whether if there is additional benefits or promotion if he buys our products.",
+        # ),
+    ]
+
+    return tools
