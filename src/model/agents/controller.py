@@ -1,56 +1,66 @@
+import sys
+import os
+
 from typing import Dict, List, Any, Union
 from pydantic import BaseModel, Field
 from langchain import LLMChain
 from langchain.llms import BaseLLM
 from langchain.chains.base import Chain
-from langchain.agents import LLMSingleActionAgent, AgentExecutor
+from langchain.agents import (
+    LLMSingleActionAgent,
+    AgentExecutor,
+    ZeroShotAgent,
+    initialize_agent,
+    AgentType,
+)
+from langchain.memory import ConversationBufferWindowMemory, ReadOnlySharedMemory
 from termcolor import colored
 
-from model.agents.parser import CustomOutputParser
-from model.chains import ConversationStageAnalyzerChain, ColdCallChain
-from model.prompts.tools import ADVISOR_TOOLS_PROMPT
-from model.prompts.utils import CustomPromptTemplate
-from model.tools import get_tools
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+)
+
+from agents.parser import CustomOutputParser
+from chains import ConversationStageAnalyzerChain, ColdCallChain
+from templates.tools import ADVISOR_TOOLS_PROMPT
+from prompts import CustomPromptTemplate
+from tools import get_tools
 
 
 class FinancialAdvisorGPT(Chain, BaseModel):
     """Controller model for the Sales Agent."""
 
-    conversation_history: List[str] = []
-    current_conversation_stage: str = "1"
+    conversation_history: Union[List[str], str]
+    conversation_stage: str = "Introduction: Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged."
     convo_stage_analyzer_chain: ConversationStageAnalyzerChain = Field(...)
     cold_call_response_chain: ColdCallChain = Field(...)
 
-    advisor_agent_executor: Union[AgentExecutor, None] = Field(...)
+    agent_chain: Union[AgentExecutor, None] = Field(...)
     use_tools: bool = False
 
-    conversation_stage_dict: Dict = {
-        "1": "Introducton: Start the cold call by introducing yourself warmly. This include stating your full name, company name, what the company do and credibility statement, or reason why this person you are reaching out to should remain in the conversation. Cite a credible source or reference to connect to the with the other party. Remember to be polite and respectful while keeping the conversation professional.",
-        "2": "Qualification: Qualify the prospect by confirming if they are the right person to talk with regards to your financial products/services. Check their age if they are legal (21 years old) to take on financial obligations or are in authority to make purchasing decisions.",
-        "3": "Huge Claim: Mention a huge claim with regards to the products/services you are planning to pitch to your sale prospects. Leverage their background as identified in the previous conversation stage in <point 2>. Attract their attention and ensure them that their time is worth. Ensure your claim remains grounded by within the the facts of your products/services to remain credible.",
-        "4": "Understanding the Prospect: Ask open-ended questions to uncover the prospect's life situation and figure what are their key financial needs. Listen carefully to their responses and take notes.",
-        "5": "Value Proposition: Explain how your financial products/services from our knowledge base can benefit the prospect in detail. List financial benefits that may benefit the prospect. Place all focus on the prospect. Additional emphasis should also be placed on information that are relative to the prospect's situation (e.g., life circumstances, major life events). Highlight key unique selling points and value proposition of the product/service that can potentially change their life for the better.",
-        "6": "Address the Doubt: Address any potential doubt or skepticism from the prospect based on either your earlier huge claim or the presentation of your financial products/services. Be prepared to provide evidence or testimonials to support your claims.",
-        "7": "Closing: Ask your prospect out for a further meeting/discussion. Provide a few potential dates and times to schedule your next interaction with the prospect. Have a few options available instead if the first or two dates do not fit into the prospect's schedule. Thank the prospect for their if they are not interested in a further meeting.",
+    conversation_stages_dict: Dict = {
+        "1": "Introduction: Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged.",
+        "2": "Confirm: This is an important next stage right after [Introduction] to confirm if the prospect is the right person to discuss financial products/services. Check their age and authority for making financial decisions.",
+        "3": "Understanding the Prospect (Repeatable): Ask open-ended questions multiple times to uncover the prospect's financial needs and situation. Repeat this stage until you have gathered sufficient background information. Attempt to figure out what life stage they are currently in, and if they have any major life events happening soon that may impact their finances. Listen attentively. You are to infer the prospect's financial ability in terms of income, expenditure and financial aspiration.",
+        "4": "Huge Claim: Present an attention-grabbing claim related to the product/service. Connect it to the prospect's background in [Understanding the Prospect] discussed earlier.",
+        "5": "Product Introduction: Introduce some of the products you have that may best suit the prospect's background and needs (inferred in from [Understanding the Prospect]). If unsure of their needs, repeat [Understanding the Prospect] and ask more questions to generate a more informed understanding of the prospect.",
+        "6": "Value Proposition: Explain how our financial products/services benefit the prospect. Focus on their needs and emphasize unique selling points.",
+        "7": "Addressing Doubts: Handle skepticism about previous claims or product presentation. Provide evidence or testimonials.",
+        "8": "Closing: If the prospect is demonstrating keenness/enthuasisiam in your financial products/services, invite the prospect for a further discussion or meeting. Suggest potential dates and times.",
+        "9": "End conversation: The prospect has to leave to call, the prospect is not interested, or next steps where already determined by the sales agent.",
     }
 
     advisor_name: str = "Jensen Low"
-    advisor_role: str = "Senior Financial Services Manager"
+    advisor_role: str = "private wealth advisor"
     nationality: str = "Singaporean"
-    primary_language: str = "english"
-    slang: str = "singlish"
-    company_name: str = "Advisor Clique"
-    company_business: str = "Advisors’ Clique (AC) is a group of financial consultants representing Great Eastern Financial Advisers Private Limited (GEFA). GEFA is a wholly owned subsidiary of Great Eastern Holdings Pte Ltd, a member of the OCBC Group. Advisors' Clique is dedicated to serving your financial needs and empowering you to reach your financial goals through helping to plan for your family's protection, building up your nest egg, or advising on your company's insurance coverage."
-    company_mission: str = "We are committed to thinking in your best interest. We empower clients through quality financial advice. We groom leaders, not managers. We forge new frontiers."
-    company_values: str = "The company values are: Trailblazers, Integrity, Excellence, Gratitude, Abundance, People Matter, and Collective Individualism."
-    conversation_purpose: str = "find out if the prospect is interested in the latest financial product offerings, such as critical illness, health insurance, or wealth accumlation plans."
+    formal_language: str = "english"
+    informal_language: str = "singlish"
+    company_name: str = "UOB"
+    company_business: str = "provide unit trusts professionally managed by various fund managers, designed to meet customers' specific investment needs"
+    conversation_purpose: str = "find out if the prospect is interested in the latest investment products, specifically various mutual funds from Abrdn"
     conversation_type: str = "cold call"
-    source_of_contact: str = "insurance roadshow"
+    source_of_contact: str = "investment seminar"
     prospect_name: str = "Jeremy Goh"
-    last_interaction_date: str = "3 months ago"
-
-    def retrieve_conversation_stage(self, key):
-        return self.conversation_stage_dict.get(key, "1")
 
     @property
     def input_keys(self) -> List[str]:
@@ -60,56 +70,105 @@ class FinancialAdvisorGPT(Chain, BaseModel):
     def output_keys(self) -> List[str]:
         return []
 
+    def clear_history(self):
+        """Clears conversation history.
+
+        Act as a stand-in for `ConversationalBufferWindowMemory` to prevent exceeding token limits.
+        """
+        # clear history to prevent existing tokens limit
+        # act as a stand-in for ConversationalBufferWindowMemory
+        if len(self.conversation_history) > 12:
+            # remove a pair of conversation together (human, ai)
+            for _ in range(2):
+                self.conversation_history.pop(0)
+
+    def retrieve_conversation_stage(self, key):
+        """Retrieves the current conversation stage context.
+
+        Args:
+            key (str): Analyzed conversation stage id.
+
+        Returns:
+            str: Context of the current conversation stage.
+        """
+        return self.conversation_stages_dict.get(key, "1")
+
     def seed_agent(self):
+        """Seed initial conversation stage."""
         # Step 1: seed the conversation
-        self.current_conversation_stage = self.retrieve_conversation_stage("1")
-        self.conversation_history = []
+        self.conversation_stage = self.retrieve_conversation_stage("1")
+        if self.use_tools:
+            self.conversation_history = []
+        else:
+            self.conversation_history = ""
 
+    # TODO: fix to use memory from ether agent or cold call chain
     def determine_conversation_stage(self):
+        """
+        Determines the current stage of conversation based on the conversation history.
+
+        Returns:
+            str: Analyzed conversation stage id.
+        """
         conversation_stage_id = self.convo_stage_analyzer_chain.run(
-            conversation_history='"\n"'.join(self.conversation_history),
-            current_conversation_stage=self.current_conversation_stage,
+            conversation_history="\n".join(self.conversation_history),
+            conversation_stage=self.conversation_stage,
         )
 
-        self.current_conversation_stage = self.retrieve_conversation_stage(
-            conversation_stage_id
-        )
-
-        print(f"Conversation Stage: {self.current_conversation_stage}")
+        print(f"Conversation Stage: {conversation_stage_id}")
+        return conversation_stage_id
 
     def human_step(self, human_input):
+        """Process human input and adds to the conversation history."""
         # process human input
         human_input = "\nUser: " + human_input + " <END_OF_TURN>"
         self.conversation_history.append(human_input)
+        # human_input = human_input + " <END_OF_TURN>"
+        # if self.use_tools:
+        #     self.agent_chain.memory.chat_memory.add_user_message(human_input)
+        # else:
+        #     self.cold_call_response_chain.memory.chat_memory.add_user_message(
+        #         human_input
+        #     )
 
     def step(self):
+        """Run one step of the sales agent.
+
+        Returns:
+            str: Agent's response.
+        """
         return self._call(inputs={})
 
     def _call(self, inputs: Dict[str, Any]) -> str:
-        """Run one step of the sales agent."""
+        """Generates agent's response based on conversation stage and history."""
 
+        self.conversation_stage = self.retrieve_conversation_stage(
+            self.determine_conversation_stage()
+        )
         # Generate agent's utterance
         if self.use_tools:
             try:
-                ai_message = self.advisor_agent_executor.run(
-                    tool_input="",
+                # since we did not implement ConversationalBufferWindowMemory
+                # we mimick the setup by automatically conversation history, when hit messages
+                self.clear_history()
+                ai_message = self.agent_chain.run(
                     input="",
-                    conversation_stage=self.current_conversation_stage,
+                    conversation_stage=self.conversation_stage,
                     conversation_history="\n".join(self.conversation_history),
                     advisor_name=self.advisor_name,
                     advisor_role=self.advisor_role,
                     nationality=self.nationality,
-                    primary_language=self.primary_language,
-                    slang=self.slang,
+                    formal_language=self.formal_language,
+                    informal_language=self.informal_language,
                     company_name=self.company_name,
                     company_business=self.company_business,
-                    company_values=self.company_values,
-                    company_mission=self.company_mission,
                     conversation_purpose=self.conversation_purpose,
                     conversation_type=self.conversation_type,
                     source_of_contact=self.source_of_contact,
                     prospect_name=self.prospect_name,
-                    last_interaction_date=self.prospect_name,
+                )
+                self.conversation_stage = self.retrieve_conversation_stage(
+                    self.determine_conversation_stage()
                 )
             # NOTE: hackish-way to deak with valid but unparseable output from llm: https://github.com/langchain-ai/langchain/issues/1358
             except ValueError as e:
@@ -121,62 +180,78 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 ).removesuffix("`")
         else:
             ai_message = self.cold_call_response_chain.run(
-                conversation_stage=self.current_conversation_stage,
-                conversation_history="\n".join(self.conversation_history),
+                input="",
+                conversation_stage=self.conversation_stage,
+                conversation_history=self.conversation_history,
                 advisor_name=self.advisor_name,
                 advisor_role=self.advisor_role,
                 nationality=self.nationality,
-                primary_language=self.primary_language,
-                slang=self.slang,
+                formal_language=self.formal_language,
+                informal_language=self.informal_language,
                 company_name=self.company_name,
                 company_business=self.company_business,
-                company_values=self.company_values,
-                company_mission=self.company_mission,
                 conversation_purpose=self.conversation_purpose,
                 conversation_type=self.conversation_type,
                 source_of_contact=self.source_of_contact,
                 prospect_name=self.prospect_name,
-                last_interaction_date=self.prospect_name,
             )
+            self.conversation_history = self.cold_call_response_chain.memory.buffer
 
         # Add agent's response to conversation history
         if "<END_OF_TURN>" in ai_message:
-            ai_message = ai_message.rstrip("<END_OF_TURN>")
+            display_message = ai_message.rstrip("<END_OF_TURN>")
         elif "<END_OF_CALL>" in ai_message:
-            ai_message = ai_message.rstrip("<END_OF_CALL>")
-
+            display_message = ai_message.rstrip("<END_OF_CALL>")
+        else:
+            display_message = ai_message
         # stdout message
         print(
             colored(
-                f"{self.advisor_name}: " + ai_message,
+                f"{self.advisor_name}: " + display_message,
                 "magenta",
             )
         )
-
-        agent_name = self.advisor_name
-        ai_message = agent_name + ": " + ai_message
         if ("<END_OF_TURN>" not in ai_message) and ("<END_OF_CALL>" not in ai_message):
             ai_message += " <END_OF_TURN>"
-        self.conversation_history.append(ai_message)
+        if self.use_tools:
+            agent_name = self.advisor_name
+            ai_message = agent_name + ": " + ai_message
+            self.conversation_history.append(ai_message)
+        # else:
+        #     self.cold_call_response_chain.memory.chat_memory.add_ai_message(ai_message)
 
-        return ai_message
+        return display_message
 
     @classmethod
     def from_llm(
         cls, llm: BaseLLM, verbose: bool = False, **kwargs
     ) -> "FinancialAdvisorGPT":
         """Initialize the FinancialAdvisorGPT Controller."""
-        convo_stage_analyzer_chain = ConversationStageAnalyzerChain.from_llm(
-            llm, verbose=verbose
+        # ref: https://stackoverflow.com/questions/76941870/valueerror-one-input-key-expected-got-text-one-text-two-in-langchain-wit
+        memory = ConversationBufferWindowMemory(
+            k=12,
+            memory_key="conversation_history",
+            ai_prefix=kwargs.get("advisor_name"),
+            human_prefix=kwargs.get("prospect_name"),
+            input_key="input",
         )
-
-        cold_call_response_chain = ColdCallChain.from_llm(llm, verbose=verbose)
+        readonlymemory = ReadOnlySharedMemory(memory=memory)
+        cold_call_response_chain = ColdCallChain.from_llm(
+            llm, memory=memory, verbose=verbose
+        )
 
         if "use_tools" in kwargs and kwargs["use_tools"] is False:
             advisor_agent_executor = None
+            # ref: https://python.langchain.com/docs/modules/agents/how_to/sharedmemory_for_tools
+            # to prevent memory from being modified by other chains
+            convo_stage_analyzer_chain = ConversationStageAnalyzerChain.from_llm(
+                llm, verbose=verbose, memory=readonlymemory
+            )
         else:
-            tools = get_tools(llm)
-
+            convo_stage_analyzer_chain = ConversationStageAnalyzerChain.from_llm(
+                llm, verbose=verbose
+            )
+            tools = get_tools()
             prompt = CustomPromptTemplate(
                 template=ADVISOR_TOOLS_PROMPT,
                 tools_getter=lambda x: tools,
@@ -188,16 +263,13 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                     "advisor_name",
                     "advisor_role",
                     "nationality",
-                    "primary_language",
-                    "slang",
+                    "formal_language",
+                    "informal_language",
                     "company_name",
                     "company_business",
-                    "company_mission",
-                    "company_values",
                     "conversation_purpose",
                     "conversation_type",
                     "source_of_contact",
-                    "last_interaction_date",
                     "prospect_name",
                     "conversation_stage",
                     "conversation_history",
@@ -208,7 +280,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
             # It makes assumptions about output from LLM which can break and throw an error
             output_parser = CustomOutputParser(ai_prefix=kwargs["advisor_name"])
             tool_names = [tool.name for tool in tools]
-            advisor_agent_with_tools = LLMSingleActionAgent(
+            agent_with_tools = LLMSingleActionAgent(
                 llm_chain=llm_chain,
                 output_parser=output_parser,
                 stop=["\nObservation:"],
@@ -216,14 +288,14 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 verbose=verbose,
             )
 
-            advisor_agent_executor = AgentExecutor.from_agent_and_tools(
-                agent=advisor_agent_with_tools, tools=tools, verbose=verbose
+            agent_chain = AgentExecutor.from_agent_and_tools(
+                agent=agent_with_tools, tools=tools, verbose=verbose
             )
 
         return cls(
             convo_stage_analyzer_chain=convo_stage_analyzer_chain,
             cold_call_response_chain=cold_call_response_chain,
-            advisor_agent_executor=advisor_agent_executor,
+            agent_chain=agent_chain,
             verbose=verbose,
             **kwargs,
         )

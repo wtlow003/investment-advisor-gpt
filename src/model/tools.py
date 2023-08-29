@@ -1,17 +1,16 @@
 import os
 from typing import Dict, List, Tuple, Union
 
-from langchain import SerpAPIWrapper
+from langchain.utilities import GoogleSerperAPIWrapper
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import PyPDFDirectoryLoader, UnstructuredURLLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.llms import BaseLLM
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.tools import BaseTool
 from langchain.vectorstores import Chroma
-from unstructured.cleaners.core import clean, clean_extra_whitespace, remove_punctuation
 
 
 # TODO: disabling it for now as it doesnt work
@@ -59,12 +58,12 @@ def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
     documents = loader.load()
     for doc in documents:
         source = doc.metadata["source"].removesuffix(".pdf").split("/")[-1].split("-")
-        product_name = source[2:]
-        plan_type = source[:2]
+        product_name = source[1:-2]
+        plan_type = source[-4:-2]
         doc.metadata["product_name"] = " ".join(product_name).title()
         doc.metadata["plan_type"] = " ".join(plan_type)
 
-    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
     documents = text_splitter.split_documents(documents)
 
     if "db" in os.listdir("."):
@@ -86,24 +85,24 @@ def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
     return knowledge_base
 
 
-def get_tools(llm: BaseLLM):
+def get_tools():
     """
     Define tools usable by the Advisor Agent.
     """
 
+    llm = ChatOpenAI(temperature=0)
     knowledge_base = setup_knowledge_base(llm, [])
-    params = {"engine": "google", "gl": "sg", "hl": "en"}
-    search = SerpAPIWrapper(params=params)
+    search = GoogleSerperAPIWrapper(type="news")
     tools = [
         Tool(
             name="WebSearch",
             func=search.run,
-            description="Search the web if knowledge base does not answer the prospect answer. Use this more if it involves world matters or localised topics outside of our products.",
+            description="Access to google search. Always use this to obtain information about current events.",
         ),
         Tool(
             name="ProductSearch",
             func=knowledge_base.run,
-            description="Knowledge containing our latest products. Use this more if the prospect is more interested in what we product do we have.",
+            description="Access to all our products. Always use this when asked about the products we offer",
         ),
         # Tool(
         #     name="SearchPromotion",

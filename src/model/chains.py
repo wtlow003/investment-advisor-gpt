@@ -1,9 +1,9 @@
 from langchain import LLMChain, PromptTemplate
 from langchain.llms import BaseLLM
-from pydantic import Field
+from langchain.memory.chat_memory import BaseChatMemory
 
-from model.prompts.chains import (
-    COLD_CALL_INIT_PROMPT_TEMPLATE,
+from templates.chains import (
+    SALES_COLD_CALL_INIT_PROMPT_TEMPLATE,
     CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
 )
 
@@ -15,7 +15,7 @@ class ConversationStageAnalyzerChain(LLMChain):
 
     @classmethod
     def from_llm(
-        cls, llm: BaseLLM, verbose: bool = True
+        cls, llm: BaseLLM, verbose: bool = True, **kwargs
     ) -> "ConversationStageAnalyzerChain":
         """
         Create an instance of the ConversationStageAnalyzerChain class from a given language model.
@@ -32,7 +32,10 @@ class ConversationStageAnalyzerChain(LLMChain):
             template=CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
             input_variables=["conversation_history"],
         )
-
+        if "memory" in kwargs:
+            memory = kwargs.get("memory")
+            # for no tools usage
+            return cls(prompt=prompt, llm=llm, memory=memory, verbose=verbose)
         return cls(prompt=prompt, llm=llm, verbose=verbose)
 
     @property
@@ -52,7 +55,9 @@ class ColdCallChain(LLMChain):
     """
 
     @classmethod
-    def from_llm(cls, llm: BaseLLM, verbose: bool = True) -> LLMChain:
+    def from_llm(
+        cls, llm: BaseLLM, memory: BaseChatMemory, verbose: bool = True
+    ) -> LLMChain:
         """
         Create an instance of the ColdCallChain class from a given language model.
 
@@ -63,30 +68,27 @@ class ColdCallChain(LLMChain):
         Returns:
             ColdCallChain: An instance of the ColdCallChain class.
         """
-        cls.prompt_template = COLD_CALL_INIT_PROMPT_TEMPLATE
+        cls.prompt_template = SALES_COLD_CALL_INIT_PROMPT_TEMPLATE
         prompt = PromptTemplate(
-            template=COLD_CALL_INIT_PROMPT_TEMPLATE,
+            template=SALES_COLD_CALL_INIT_PROMPT_TEMPLATE,
             input_variables=[
                 "advisor_name",
                 "advisor_role",
                 "nationality",
-                "primary_language",
-                "slang",
+                "formal_language",
+                "informal_language",
                 "company_name",
                 "company_business",
-                "company_mission",
-                "company_values",
+                "prospect_name",
+                "source_of_contact",
                 "conversation_purpose",
                 "conversation_type",
-                "source_of_contact",
-                "last_interaction_date",
-                "prospect_name",
                 "conversation_stage",
                 "conversation_history",
             ],
         )
 
-        return cls(prompt=prompt, llm=llm, verbose=verbose)
+        return cls(prompt=prompt, llm=llm, memory=memory, verbose=verbose)
 
     @property
     def _chain_type(self) -> str:
