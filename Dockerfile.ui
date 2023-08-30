@@ -15,6 +15,8 @@ RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --only ui
 
+COPY ./.chainlit /code/.chainlit
+COPY ./chainlit.md /code/chainlit.md
 COPY ./src/app.py /code/src/app.py
 
 EXPOSE 8080
