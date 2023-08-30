@@ -119,7 +119,7 @@ The `InvesmentAdvisorGPT` agent has requires some configs to power basic convers
 1. `advisor_name`: Name of your agent, so it doesn't address itself as a robot/llm.
 2. `advisor_role`: Role for your agent, so it knows it should behave in the capacity of the role.
 3. `nationality`: Attempt to enforce behaviour from a nationality (doesn't seem to work as expected, lacklustre)
-4. `formal_language` and `informal_language`: Attempt to allow for a switch-up the way the conversational tone sounds depending on the context of the conversation (fluacuate betweens very professional and too overly casual (e.g., `"hey bro!"`, `"... bro!"`))
+4. `formal_language` and `informal_language`: Attempt to allow for a switch-up the way the conversational tone sounds depending on the context of the conversation (fluctuate between being very professional and too overly casual (e.g., `"hey bro!"`, `"... bro!"`))
 5. `company_name` and `company_business`: Allows the agent to identify himself appropriate or introduces himself by identifying his work association.
 6. `conversation_purpose`: Drives the overall objective of the conversation and all conversation flow stems from the purpose.
 7. `source_of_contact` and `prospect_name`: Refers to the user we are reaching out to/or reaching out to us. This attempts to ground the agent with regards to a certain level of familarity with the user and not hallucinating and making the premise of the conversation random.
@@ -146,9 +146,9 @@ A chain (`ConversationStageAnalyzerChain`) is designed to analyzed the conversat
 
 ### Knowledge Base and Tools
 
-To miminize hallucination from our agent, we also utilised a knowledge base based on embeddings generated from various investment-related documents.
+To miminize hallucination from our agent, we also utilised a knowledge base based on embeddings generated from various investment-related documents. Referring to the architecture [diagram](#architecture), you can see that the agent leverages retrieval from the knowledge based to augment its thoughts and responses.
 
-This documents include prospectus sheet, product highlight sheets from [Abrdn](https://www.abrdn.com/en-sg/investor/funds/view-all-funds?tab=2) (just randomly chose to use this company's product for demonstration purposes). Referring to the architecture [diagram](#architecture), you can see that the agent leverages retrieval from the knowledge based to augment its thoughts and responses.
+These documents used include prospectus sheet, product highlight sheets from [Abrdn](https://www.abrdn.com/en-sg/investor/funds/view-all-funds?tab=2) (just randomly chose to use this company's product for demonstration purposes). The data is ingested into the knowledge base when placed in the project root directory (`./data`) before the application starts up, and when the (`./db`) directory is absent. The `./db` directory is automatically created when you first ingest documents into the vector store (ChromaDB). Therefore, if the `./db` directory is available, no data ingestion will occur (preventing constant calls for embeddings and associated costs). In this repository, the knowledge base is already provided. Hence, no embedding costs will be incurred if you choose to try out the application.
 
 How the knowledge based is being leveraged is based on usage of custom [tools](./src/model/tools.py). There two main tools available to our agent, `ProductSearch` and `WebSearch`. As the name implies, product search allows for search into our knowledge base to make more informed responses. Meanwhile, web search allow the agent to conduct latest news retrieval if one were to ask about any particular development in any country of interest that might help to drive a conversation on further investments.
 
