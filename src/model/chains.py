@@ -1,11 +1,8 @@
 from langchain import LLMChain, PromptTemplate
 from langchain.llms import BaseLLM
 from langchain.memory.chat_memory import BaseChatMemory
-
-from templates.chains import (
-    SALES_COLD_CALL_INIT_PROMPT_TEMPLATE,
-    CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
-)
+from templates.chains import (CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
+                              SALES_COLD_CALL_INIT_PROMPT_TEMPLATE)
 
 
 class ConversationStageAnalyzerChain(LLMChain):

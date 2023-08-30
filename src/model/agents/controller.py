@@ -1,19 +1,15 @@
-import sys
 import os
+import sys
+from typing import Any, Dict, List, Union
 
-from typing import Dict, List, Any, Union
-from pydantic import BaseModel, Field
 from langchain import LLMChain
-from langchain.llms import BaseLLM
+from langchain.agents import (AgentExecutor, AgentType, LLMSingleActionAgent,
+                              ZeroShotAgent, initialize_agent)
 from langchain.chains.base import Chain
-from langchain.agents import (
-    LLMSingleActionAgent,
-    AgentExecutor,
-    ZeroShotAgent,
-    initialize_agent,
-    AgentType,
-)
-from langchain.memory import ConversationBufferWindowMemory, ReadOnlySharedMemory
+from langchain.llms import BaseLLM
+from langchain.memory import (ConversationBufferWindowMemory,
+                              ReadOnlySharedMemory)
+from pydantic import BaseModel, Field
 from termcolor import colored
 
 sys.path.append(
@@ -21,9 +17,9 @@ sys.path.append(
 )
 
 from agents.parser import CustomOutputParser
-from chains import ConversationStageAnalyzerChain, ColdCallChain
-from templates.tools import ADVISOR_TOOLS_PROMPT
+from chains import ColdCallChain, ConversationStageAnalyzerChain
 from prompts import CustomPromptTemplate
+from templates.tools import ADVISOR_TOOLS_PROMPT
 from tools import get_tools
 
 

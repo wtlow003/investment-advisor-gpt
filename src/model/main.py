@@ -1,10 +1,8 @@
 import json
 
-from dotenv import load_dotenv, find_dotenv
-from langchain.chat_models import ChatOpenAI
-
 from agents.controller import FinancialAdvisorGPT
-
+from dotenv import find_dotenv, load_dotenv
+from langchain.chat_models import ChatOpenAI
 
 if __name__ == "__main__":
     _ = load_dotenv(find_dotenv())

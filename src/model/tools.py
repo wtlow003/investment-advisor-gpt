@@ -1,7 +1,6 @@
 import os
 from typing import List
 
-from langchain.utilities import GoogleSerperAPIWrapper
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
@@ -9,6 +8,7 @@ from langchain.document_loaders import PyPDFDirectoryLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.llms import BaseLLM
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.utilities import GoogleSerperAPIWrapper
 from langchain.vectorstores import Chroma
 
 
