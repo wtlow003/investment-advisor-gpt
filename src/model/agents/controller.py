@@ -46,7 +46,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         "9": "End conversation: The prospect has to leave to call, the prospect is not interested, or next steps where already determined by the sales agent.",
     }
 
-    advisor_name: str = "Jensen Low"
+    advisor_name: str = "Bobby Axelrod"
     advisor_role: str = "private wealth advisor"
     nationality: str = "Singaporean"
     formal_language: str = "english"
@@ -56,7 +56,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
     conversation_purpose: str = "find out if the prospect is interested in the latest investment products, specifically various mutual funds from Abrdn"
     conversation_type: str = "cold call"
     source_of_contact: str = "investment seminar"
-    prospect_name: str = "Jeremy Goh"
+    prospect_name: str = "Jensen Low"
 
     @property
     def input_keys(self) -> List[str]:
