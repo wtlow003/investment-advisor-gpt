@@ -93,6 +93,8 @@ The overall architecure of the application is as observed:
 
 The `InvesmentAdvisorGPT` agent requires certain configs to power basic conversation capability. Below contains an example set of configs found in `src/model/configs/examples/agent_singaporean_male.json`:
 
+> **NOTE:** You can change any configs [here](./src/model/configs/examples/agent_singaporean_male.json)!
+
 ```json
 {
     "advisor_name": "Bobby Axelrod",
@@ -126,6 +128,8 @@ The `InvesmentAdvisorGPT` agent requires certain configs to power basic conversa
 
 Lastly, `conversation_history`, `conversation_stage` seeds the initial conversation. While `use_tools` controls whether to use a agent with tools (product search, web search) or just default prompts (greater potential to hallucinate), and `verbose` set the verbosity of the Agents.
 
+> **NOTE**: `use_tools=False` remains buggy at the moment, and the conversation does not flow as smoothly due to the conversation history being clustered with double/blank inputs (both ai and user-alike). Hence, highly recommend to set `use_tools=True` for the time-being.
+
 #### Change In Conversation Flow
 
 As demonstrated in [SalesGPT](https://github.com/filip-michalsky/SalesGPT), custom agents can have the ability to change conversational topics or guide the flow of conversation if the conversation history is analyzed and identified for what stage a sales call might be in. Adapting the ideas, a series of [conversation stages](./src/model/templates/chains.py) were determined based on several research on cold-calls strategy and workflow to better capture how the conversation might panned out.
@@ -156,10 +160,54 @@ Example of using both `ProductSearch` and `WebSearch` in a conversation:
 
 ![image of chat with tools](./docs/tools-usage.png)
 
+## Known Issues
+
+1. `ConversationBufferwindowMemory` remains buggy is currently duplicating the agent's response twice in the row as observed in our conversation history:
+    ```log
+    **Current Conversation Stage Context:**
+    web_1  |     Product Introduction: Introduce some of the products you have that may best suit the prospect's background and needs (inferred in from [Understanding the Prospect]). If unsure of their needs, repeat [Understanding the Prospect] and ask more questions to generate a more informed understanding of the prospect.
+    web_1  |     **Conversation History:**
+    web_1  |     Jensen Low:
+    web_1  |     Bobby Axelrod: Hey Jensen, it's Bobby Axelrod from UOB. Remember we met at the investment seminar? How's everything going?
+    web_1  |     Bobby Axelrod: Hey Jensen, it's Bobby Axelrod from UOB. Remember we met at the investment seminar? How's everything going? <END_OF_TURN>
+    web_1  |     Jensen Low: I am good. Thanks for asking. <END_OF_TURN>
+    web_1  |     Jensen Low:
+    web_1  |     Bobby Axelrod: Hey Jensen, glad to hear that you're doing well. I hope you found the investment seminar informative. Speaking of investments, have you considered exploring the latest mutual funds from Abrdn? They offer a range of professionally managed funds that can help meet your specific investment needs. Would you be interested in learning more about them? <END_OF_TURN>
+    web_1  |     Bobby Axelrod: Hey Jensen, glad to hear that you're doing well. I hope you found the investment seminar informative. Speaking of investments, have you considered exploring the latest mutual funds from Abrdn? They offer a range of professionally managed funds that can help meet your specific investment needs. Would you be interested in learning more about them? <END_OF_TURN>
+    web_1  |     Jensen Low: Yea sure, why not? <END_OF_TURN>
+    ```
+    In addition, blank user's message is also added into the conversation history. More work is required to debug the usage for this particular memory as it is crucial, considering the existing length of our prompt template, requiring the need for ease in pruning conversation history to ensure we do not exceed the token limit.
+2. LLM often faced issues with its output parser when using a tool as it does not follow the [reAct](https://www.promptingguide.ai/techniques/react) prompting. In this repo, we setup the reAct prompt template for tools usage as:
+    ```python
+    ### Tools ###
+
+    To fulfill these certain objectives, {advisor_name} has access to the following tools:
+
+    {tools}
+
+    To use a tool, use the following format:
+
+    # we use triple backtick in actual prompt
+    # used two here to prevent codeblock formatting issue
+    ``
+    Question: the input question you must answer
+    Thought: you should always think about what to do
+    Action: the action to take, should be one of [{tools}]
+    Action Input: the input to the action
+    Observation: the result of the action
+    ... (this Thought/Action/Action Input/Observation can repeat N times)
+    Thought: I now know the final answer
+    Final Answer: the final answer to the original input question
+    ``
+
+    If the result of the action is "I don't know." or "Sorry I don't know", then you have to say that to the user.
+    ```
+    However, the LLM still sometimes return back response such as `"Thought: Search the web for xxx..."`, without completing the whole general reasoning framework. This results in the LLM to output weird response to a valid query. Currently, the only way to deal with it is through repeating the query/question in a slighly  different way or moving on entirely.
+
 ## Future Works
 
 - [ ] Refine existing prompt to better exhibit persona and reduce LLM output parsing error when using tools.
 - [ ] Enable easier configuration of conversation context e.g., `prospect_name`, `advisor_name` etc.
-- [ ] Change agent architecture to better allow the usage of `ConversationalBufferWindowMemory` instead of using stand-in method of removing conversation from a list (or using a list to store conversation history).
+- [ ] Change agent architecture to better allow the usage of `ConversationBufferWindowMemory` instead of using stand-in method of removing conversation from a list (or using a list to store conversation history).
 - [ ] Leverage on a better storage, insted of a using a dict object to store agent(s) in our server. Considering using a cache (redis) to cache agent and demonstrate ability to handle multiple concurrent conversations.
 
