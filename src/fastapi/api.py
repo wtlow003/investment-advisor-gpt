@@ -34,7 +34,7 @@ class AIMessage(BaseModel):
 
 _ = load_dotenv(find_dotenv())
 logger = logging.getLogger(__name__)
-llm = ChatOpenAI(temperature=0.9)
+llm = ChatOpenAI(temperature=0.4)
 agent_pool = {}
 
 # =================================
