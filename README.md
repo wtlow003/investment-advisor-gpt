@@ -91,7 +91,7 @@ The overall architecure of the application is as observed:
 
 ### Conversation Context
 
-The `InvesmentAdvisorGPT` agent has requires some configs to power basic conversation capability. The require configs are:
+The `InvesmentAdvisorGPT` agent requires certain configs to power basic conversation capability. Below contains an example set of configs found in `src/model/configs/examples/agent_singaporean_male.json`:
 
 ```json
 {
@@ -156,6 +156,6 @@ How the knowledge based is being leveraged is based on usage of custom [tools](.
 
 - [ ] Refine existing prompt to better exhibit persona and reduce LLM output parsing error when using tools.
 - [ ] Enable easier configuration of conversation context e.g., `prospect_name`, `advisor_name` etc.
-- [ ] Change agent architecture to better allow the usage of `ConversationalBufferWindowMemory` instead of using stand-in method of remove conversation from a list (or using a list to store conversation history).
+- [ ] Change agent architecture to better allow the usage of `ConversationalBufferWindowMemory` instead of using stand-in method of removing conversation from a list (or using a list to store conversation history).
 - [ ] Leverage on a better storage, insted of a using a dict object to store agent(s) in our server. Considering using a cache (redis) to cache agent and demonstrate ability to handle multiple concurrent conversations.
 
