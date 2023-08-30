@@ -3,12 +3,10 @@ import sys
 from typing import Any, Dict, List, Union
 
 from langchain import LLMChain
-from langchain.agents import (AgentExecutor, AgentType, LLMSingleActionAgent,
-                              ZeroShotAgent, initialize_agent)
+from langchain.agents import AgentExecutor, LLMSingleActionAgent
 from langchain.chains.base import Chain
 from langchain.llms import BaseLLM
-from langchain.memory import (ConversationBufferWindowMemory,
-                              ReadOnlySharedMemory)
+from langchain.memory import ConversationBufferWindowMemory, ReadOnlySharedMemory
 from pydantic import BaseModel, Field
 from termcolor import colored
 
