@@ -116,14 +116,13 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         """Process human input and adds to the conversation history."""
         # process human input
         human_input = "\nUser: " + human_input + " <END_OF_TURN>"
-        self.conversation_history.append(human_input)
-        # human_input = human_input + " <END_OF_TURN>"
-        # if self.use_tools:
-        #     self.agent_chain.memory.chat_memory.add_user_message(human_input)
-        # else:
-        #     self.cold_call_response_chain.memory.chat_memory.add_user_message(
-        #         human_input
-        #     )
+        if self.use_tools:
+            self.conversation_history.append(human_input)
+        else:
+            human_input = human_input.removeprefix("\nUser: ")
+            self.cold_call_response_chain.memory.chat_memory.add_user_message(
+                human_input
+            )
 
     def step(self):
         """Run one step of the sales agent.
@@ -172,8 +171,9 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 ai_message = response.removeprefix(
                     "Could not parse LLM output: `"
                 ).removesuffix("`")
-                # TODO: this is a temp measure to not display
-                # bot message to user.
+                # TODO: this is a temp measure to not display bot message to user.
+                # this occurs when bot cannot follow instruction when using tools.
+                # there are other occurence as well
                 if "Do I need to use a tool?" in ai_message:
                     ai_message = (
                         "Sorry, I didn't quite catch that. Do you mind repeating?"
@@ -195,7 +195,12 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 source_of_contact=self.source_of_contact,
                 prospect_name=self.prospect_name,
             )
-            self.conversation_history = self.cold_call_response_chain.memory.buffer
+            # self.conversation_history = self.cold_call_response_chain.memory.buffer
+            self.conversation_history = (
+                self.cold_call_response_chain.memory.load_memory_variables({})[
+                    "conversation_history"
+                ]
+            )
 
         # Add agent's response to conversation history
         if "<END_OF_TURN>" in ai_message:
@@ -213,12 +218,14 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         )
         if ("<END_OF_TURN>" not in ai_message) and ("<END_OF_CALL>" not in ai_message):
             ai_message += " <END_OF_TURN>"
+        agent_name = self.advisor_name
+        ai_message = agent_name + ": " + ai_message
         if self.use_tools:
-            agent_name = self.advisor_name
-            ai_message = agent_name + ": " + ai_message
             self.conversation_history.append(ai_message)
-        # else:
-        #     self.cold_call_response_chain.memory.chat_memory.add_ai_message(ai_message)
+        else:
+            self.cold_call_response_chain.memory.chat_memory.add_ai_message(
+                ai_message.removeprefix(agent_name + ": ")
+            )
 
         return ai_message
 
@@ -241,7 +248,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         )
 
         if "use_tools" in kwargs and kwargs["use_tools"] is False:
-            advisor_agent_executor = None
+            agent_chain = None
             # ref: https://python.langchain.com/docs/modules/agents/how_to/sharedmemory_for_tools
             # to prevent memory from being modified by other chains
             convo_stage_analyzer_chain = ConversationStageAnalyzerChain.from_llm(
