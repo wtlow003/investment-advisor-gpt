@@ -85,9 +85,77 @@ To visit the UI, you may access @ http://localhost:8080 after completing the rel
 
 ## Architecture
 
-![architecture diagram of InvestmentAdvisorGPT](./doc/../docs/Untitled-2023-08-30-0403.png)
+The overall architecure of the application is as observed:
+
+![architecture diagram of InvestmentAdvisorGPT](./docs/architecture-diagram.png)
 
 ### Conversation Context
 
+The `InvesmentAdvisorGPT` agent has requires some configs to power basic conversation capability. The require configs are:
+
+```json
+{
+    "advisor_name": "Bobby Axelrod",
+    "advisor_role": "private wealth advisor",
+    "nationality": "Singaporean",
+    "formal_language": "english",
+    "informal_language": "singlish",
+    "company_name": "UOB",
+    "company_business": "provide unit trusts professionally managed by various fund managers, designed to meet customers' specific investment needs",
+    "conversation_purpose": "find out if the prospect is interested in the latest investment products, specifically various mutual funds from Abrdn",
+    "conversation_type": "text",
+    "source_of_contact": "investment seminar",
+    "prospect_name": "Jensen Low",
+    // these below can remain untouched
+    "conversation_stage": "Introduction: Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged.",
+    "conversation_history": [],
+    "use_tools": true,
+    "verbose": true
+}
+```
+
+**Explaination of Configs:**
+
+1. `advisor_name`: Name of your agent, so it doesn't address itself as a robot/llm.
+2. `advisor_role`: Role for your agent, so it knows it should behave in the capacity of the role.
+3. `nationality`: Attempt to enforce behaviour from a nationality (doesn't seem to work as expected, lacklustre)
+4. `formal_language` and `informal_language`: Attempt to allow for a switch-up the way the conversational tone sounds depending on the context of the conversation (fluacuate betweens very professional and too overly casual (e.g., `"hey bro!"`, `"... bro!"`))
+5. `company_name` and `company_business`: Allows the agent to identify himself appropriate or introduces himself by identifying his work association.
+6. `conversation_purpose`: Drives the overall objective of the conversation and all conversation flow stems from the purpose.
+7. `source_of_contact` and `prospect_name`: Refers to the user we are reaching out to/or reaching out to us. This attempts to ground the agent with regards to a certain level of familarity with the user and not hallucinating and making the premise of the conversation random.
+
+Lastly, `conversation_history`, `conversation_stage` seeds the initial conversation. While `use_tools` controls whether to use a agent with tools (product search, web search) or just default prompts (greater potential to hallucinate), and `verbose` set the verbosity of the Agents.
+
+#### Change In Conversation Flow
+
+As demonstrated in [SalesGPT](https://github.com/filip-michalsky/SalesGPT), custom agents can have the ability to change conversational topics or guide the flow of conversation if the conversation history is analyzed and identified for what stage a sales call might be in. Adapting the ideas, a series of [conversation stages](./src/model/templates/chains.py) were determined based on several research on cold-calls strategy and workflow to better capture how the conversation might panned out.
+
+The stages are as followed:
+
+1.  **Introduction:** Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged.
+2.  **Confirm:** This is an important next stage right after [Introduction] to confirm if the prospect is the right person to discuss financial products/services. Check their age and authority for making financial decisions."
+3. **Understanding the Prospect (Repeatable):** Ask open-ended questions multiple times to uncover the prospect's financial needs and situation. Repeat this stage until you have gathered sufficient background information. Attempt to figure out what life stage they are currently in, and if they have any major life events happening soon that may impact their finances. Listen attentively. You are to infer the prospect's financial ability in terms of income, expenditure and financial aspiration.",
+4. **Huge Claim:** Present an attention-grabbing claim related to the product/service. Connect it to the prospect's background in [Understanding the Prospect] discussed earlier.
+5. **Product Introduction:** Introduce some of the products you have that may best suit the prospect's background and needs (inferred in from [Understanding the Prospect]). If unsure of their needs, repeat [Understanding the Prospect] and ask more questions to generate a more informed understanding of the prospect.
+6. **Value Proposition:** Explain how our financial products/services benefit the prospect. Focus on their needs and emphasize unique selling points.",
+7. **Addressing Doubts:** Handle skepticism about previous claims or product presentation. Provide evidence or testimonials.
+8. **Closing:** If the prospect is demonstrating keenness/enthuasisiam in your financial products/services, invite the prospect for a further discussion or meeting. Suggest potential dates and times.
+9. **End conversation:** The prospect has to leave to call, the prospect is not interested, or next steps where already determined by the sales agent.
+
+A chain (`ConversationStageAnalyzerChain`) is designed to analyzed the conversation history up till the latest point and retrieve the most relevant stage and feed back into the agent's prompt as a guideline on how to response.
+
 ### Knowledge Base and Tools
+
+To miminize hallucination from our agent, we also utilised a knowledge base based on embeddings generated from various investment-related documents.
+
+This documents include prospectus sheet, product highlight sheets from [Abrdn](https://www.abrdn.com/en-sg/investor/funds/view-all-funds?tab=2) (just randomly chose to use this company's product for demonstration purposes). Referring to the architecture [diagram](#architecture), you can see that the agent leverages retrieval from the knowledge based to augment its thoughts and responses.
+
+How the knowledge based is being leveraged is based on usage of custom [tools](./src/model/tools.py). There two main tools available to our agent, `ProductSearch` and `WebSearch`. As the name implies, product search allows for search into our knowledge base to make more informed responses. Meanwhile, web search allow the agent to conduct latest news retrieval if one were to ask about any particular development in any country of interest that might help to drive a conversation on further investments.
+
+## Future Works
+
+- [ ] Refine existing prompt to better exhibit persona and reduce LLM output parsing error when using tools.
+- [ ] Enable easier configuration of conversation context e.g., `prospect_name`, `advisor_name` etc.
+- [ ] Change agent architecture to better allow the usage of `ConversationalBufferWindowMemory` instead of using stand-in method of remove conversation from a list (or using a list to store conversation history).
+- [ ] Leverage on a better storage, insted of a using a dict object to store agent(s) in our server. Considering using a cache (redis) to cache agent and demonstrate ability to handle multiple concurrent conversations.
 
