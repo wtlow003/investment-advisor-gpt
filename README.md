@@ -152,6 +152,10 @@ These documents used include prospectus sheet, product highlight sheets from [Ab
 
 How the knowledge based is being leveraged is based on usage of custom [tools](./src/model/tools.py). There two main tools available to our agent, `ProductSearch` and `WebSearch`. As the name implies, product search allows for search into our knowledge base to make more informed responses. Meanwhile, web search allow the agent to conduct latest news retrieval if one were to ask about any particular development in any country of interest that might help to drive a conversation on further investments.
 
+Example of using both `ProductSearch` and `WebSearch` in a conversation:
+
+![image of chat with tools](./docs/tools-usage.png)
+
 ## Future Works
 
 - [ ] Refine existing prompt to better exhibit persona and reduce LLM output parsing error when using tools.
