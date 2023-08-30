@@ -1,0 +1,36 @@
+services:
+  web:
+    build: .
+    command: poetry run uvicorn src.fastapi.api:app --host 0.0.0.0
+    ports:
+      - "8000:8000"
+    networks:
+      - app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-X",
+          "GET",
+          "http://localhost:8000/health"
+        ]
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    command: poetry run chainlit run src/app.py --port 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - app
+
+networks:
+  app:
