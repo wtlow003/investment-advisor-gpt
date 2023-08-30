@@ -6,7 +6,20 @@ This project demonstrates the usage of custom agent with knowledge base and tool
 
 The chatbot demonstrated in this repo exhibits certain persona [defined](./src/model/templates/tools.py) aimed to conduct a sale outreach with users in attempt to promote and pitch certain financial products e.g., mutual funds embedded within our knowledge base. Conversation flows are also depended on previous conversation history. The attempt to generate context-aware sales conversation is adapted from [SalesGPT](https://github.com/filip-michalsky/SalesGPT), where the chatbot has the ability to shift conversation topics with minimal prompting from the user.
 
-## Installation
+## Tables of Contents
+
+- [Installation](#installation)
+  - [Tools and LLM Setup](#tools-and-llm-setup)
+- [Quick Start](#quick-start)
+  - [UI](#ui)
+- [Architecture](#architecture)
+  - [Conversation Context](#conversation-context)
+  - [Change In Conversation Flow](#change-in-conversation-flow)
+  - [Knowledge Base and Tools](#knowledge-base-and-tools)
+- [Known Issues](#known-issues)
+- [Future Works](#future-works)
+
+### Installation
 
 The application consisting of the UI and server is container-ready and deployed via the [docker-compose](docker-compose.yaml) file.
 
@@ -22,7 +35,7 @@ To stop the application and clean up, use the following command:
 docker-compose down --remove-orphans
 ```
 
-### Tools and LLM Setup
+#### Tools and LLM Setup
 
 To ensure the full working experience of the chatbot, you will need to have the following API keys:
 
@@ -38,7 +51,7 @@ OPENAI_API_KEY="fill me in"
 SERPER_API_KEY="fill me in"
 ```
 
-## Quick Start
+### Quick Start
 Using your terminal:
 ```bash
 # user_id can be anything, it just to use to create
@@ -83,13 +96,13 @@ In addition to using API calls, a UI is provided. The UI is developed using [Cha
 
 To visit the UI, you may access @ http://localhost:8080 after completing the relevant [installation](#installation).
 
-## Architecture
+### Architecture
 
-The overall architecure of the application is as observed:
+The overall architecture of the application is as observed:
 
 ![architecture diagram of InvestmentAdvisorGPT](./docs/architecture-diagram.png)
 
-### Conversation Context
+#### Conversation Context
 
 The `InvesmentAdvisorGPT` agent requires certain configs to power basic conversation capability. Below contains an example set of configs found in `src/model/configs/examples/agent_singaporean_male.json`:
 
@@ -148,7 +161,7 @@ The stages are as followed:
 
 A chain (`ConversationStageAnalyzerChain`) is designed to analyzed the conversation history up till the latest point and retrieve the most relevant stage and feed back into the agent's prompt as a guideline on how to response.
 
-### Knowledge Base and Tools
+#### Knowledge Base and Tools
 
 To miminize hallucination from our agent, we also utilised a knowledge base based on embeddings generated from various investment-related documents. Referring to the architecture [diagram](#architecture), you can see that the agent leverages retrieval from the knowledge based to augment its thoughts and responses.
 
@@ -160,7 +173,7 @@ Example of using both `ProductSearch` and `WebSearch` in a conversation:
 
 ![image of chat with tools](./docs/tools-usage.png)
 
-## Known Issues
+### Known Issues
 
 1. `ConversationBufferwindowMemory` remains buggy is currently duplicating the agent's response twice in the row as observed in our conversation history:
     ```log
@@ -177,7 +190,7 @@ Example of using both `ProductSearch` and `WebSearch` in a conversation:
     web_1  |     Jensen Low: Yea sure, why not? <END_OF_TURN>
     ```
     In addition, blank user's message is also added into the conversation history. More work is required to debug the usage for this particular memory as it is crucial, considering the existing length of our prompt template, requiring the need for ease in pruning conversation history to ensure we do not exceed the token limit.
-2. LLM often faced issues with its output parser when using a tool as it does not follow the [reAct](https://www.promptingguide.ai/techniques/react) prompting. In this repo, we setup the reAct prompt template for tools usage as:
+2. LLM often faced issues with its output parser when using a tool, as it does not follow the [reAct](https://www.promptingguide.ai/techniques/react) prompting. In this repo, we setup the reAct prompt template for tools usage as:
     ```python
     ### Tools ###
 
@@ -202,9 +215,9 @@ Example of using both `ProductSearch` and `WebSearch` in a conversation:
 
     If the result of the action is "I don't know." or "Sorry I don't know", then you have to say that to the user.
     ```
-    However, the LLM still sometimes return back response such as `"Thought: Search the web for xxx..."`, without completing the whole general reasoning framework. This results in the LLM to output weird response to a valid query. Currently, the only way to deal with it is through repeating the query/question in a slighly  different way or moving on entirely.
+    However, the LLM still sometimes return back response such as `"Thought: Search the web for xxx..."`, without completing the whole general reasoning framework. This results in the LLM to output weird response to a valid query. Currently, the only way to deal with it is through repeating the query/question in a slightly  different way or moving on entirely.
 
-## Future Works
+### Future Works
 
 - [ ] Refine existing prompt to better exhibit persona and reduce LLM output parsing error when using tools.
 - [ ] Enable easier configuration of conversation context e.g., `prospect_name`, `advisor_name` etc.
