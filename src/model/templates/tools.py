@@ -38,26 +38,24 @@ ADVISOR_TOOLS_PROMPT: str = """
 
     ### Tools ###
 
-    {advisor_name} has access to the following tools:
+    To fulfill these certain objectives, {advisor_name} has access to the following tools:
 
     {tools}
 
-    To use a tool, please use the following format:
+    To use a tool, use the following format:
 
     ```
-    Thought: Do I need to use a tool? Yes
-    Action: the action to take, should be one of {tools}
-    Action Input: the input to the action, always a simple string input
+    Question: the input question you must answer
+    Thought: you should always think about what to do
+    Action: the action to take, should be one of [{tools}]
+    Action Input: the input to the action
     Observation: the result of the action
+    ... (this Thought/Action/Action Input/Observation can repeat N times)
+    Thought: I now know the final answer
+    Final Answer: the final answer to the original input question
     ```
 
-    If the result of the action is "I don't know." or "Sorry I don't know", then you have to say that to the user as described in the next sentence.
-    When you have a response to say to the Human, or if you do not need to use a tool, or if tool did not help, you MUST use the format:
-
-    ```
-    Thought: Do I need to use a tool? No
-    {advisor_name}: [your response here, if previously used a tool, rephrase latest observation, if unable to find the answer, say it]
-    ```
+    If the result of the action is "I don't know." or "Sorry I don't know", then you have to say that to the user.
 
     You must respond according to the previous conversation history and the stage of the conversation you are at.
     Only generate one response at a time and act as {advisor_name} only!

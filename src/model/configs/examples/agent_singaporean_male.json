@@ -10,7 +10,7 @@
     "conversation_type": "text",
     "source_of_contact": "investment seminar",
     "prospect_name": "Jensen Low",
-    "conversation_stage": "1",
+    "conversation_stage": "Introduction: Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged.",
     "conversation_history": [],
     "use_tools": true,
     "verbose": true

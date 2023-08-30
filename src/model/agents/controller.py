@@ -178,6 +178,12 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 ai_message = response.removeprefix(
                     "Could not parse LLM output: `"
                 ).removesuffix("`")
+                # TODO: this is a temp measure to not display
+                # bot message to user.
+                if "Do I need to use a tool?" in ai_message:
+                    ai_message = (
+                        "Sorry, I didn't quite catch that. Do you mind repeating?"
+                    )
         else:
             ai_message = self.cold_call_response_chain.run(
                 input="",
@@ -220,7 +226,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         # else:
         #     self.cold_call_response_chain.memory.chat_memory.add_ai_message(ai_message)
 
-        return display_message
+        return ai_message
 
     @classmethod
     def from_llm(

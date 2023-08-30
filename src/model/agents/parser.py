@@ -31,8 +31,10 @@ class CustomOutputParser(AgentOutputParser):
             raise ValueError(f"Could not parse LLM output: `{llm_output}`")
             # TODO: figure a more natural way to deal with parsing error
             # return AgentFinish(
-            #     return_value={"output": "Sorry, I didnt quite really catch that, do you mind repeating it again?"},
-            #     log=llm_output
+            #     return_values={
+            #         "output": "Sorry, I don't really have a good answer to your query at the moment. Perharps, let me check, and get back to you later?"
+            #     },
+            #     log=llm_output,
             # )
         action = match.group(1).strip()
         action_input = match.group(2)
