@@ -16,7 +16,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 )
 
-from model.agents.controller import FinancialAdvisorGPT
+from model.agents.controller import InvestmentAdvisorGPT
 
 
 class HealthCheck(BaseModel):
@@ -114,13 +114,24 @@ def chat(
     user_id: str,
     message: HumanMessage,
 ):
+    """
+    ## Retrieve single response from LLM agent.
+
+    \nEndpoint to retrieve single response from LLM agent given input. Initial call
+    to the endpoint can/should be an empty string to allow LLM agent to greet the
+    user first.
+    .\n
+
+    Returns:
+        Returns a JSON response with the user_id and agent's response.
+    """
     if user_id in agent_pool:
         agent_chain = agent_pool.get(user_id)
         # retrieve request body and send human input
         agent_chain.human_step(message.message)
     else:
         # create new agent for current chat
-        agent_chain = FinancialAdvisorGPT.from_llm(llm, **req.app.state.llm_configs)
+        agent_chain = InvestmentAdvisorGPT.from_llm(llm, **req.app.state.llm_configs)
         agent_chain.seed_agent()
     # retrieve agent response
     resp = agent_chain.step()

@@ -15,19 +15,19 @@ sys.path.append(
 )
 
 from agents.parser import CustomOutputParser
-from chains import ColdCallChain, ConversationStageAnalyzerChain
+from chains import ConversationChain, ConversationStageAnalyzerChain
 from prompts import CustomPromptTemplate
 from templates.tools import ADVISOR_TOOLS_PROMPT
 from tools import get_tools
 
 
-class FinancialAdvisorGPT(Chain, BaseModel):
-    """Controller model for the Sales Agent."""
+class InvestmentAdvisorGPT(Chain, BaseModel):
+    """Controller model for the investment Agent."""
 
     conversation_history: Union[List[str], str]
     conversation_stage: str = "Introduction: Begin the cold call with a warm self-introduction. Include your name, company, and a credibility statement or reason for the prospect to stay engaged."
     convo_stage_analyzer_chain: ConversationStageAnalyzerChain = Field(...)
-    cold_call_response_chain: ColdCallChain = Field(...)
+    conversation_response_chain: ConversationChain = Field(...)
 
     agent_chain: Union[AgentExecutor, None] = Field(...)
     use_tools: bool = False
@@ -120,7 +120,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
             self.conversation_history.append(human_input)
         else:
             human_input = human_input.removeprefix("\nUser: ")
-            self.cold_call_response_chain.memory.chat_memory.add_user_message(
+            self.conversation_response_chain.memory.chat_memory.add_user_message(
                 human_input
             )
 
@@ -179,7 +179,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                         "Sorry, I didn't quite catch that. Do you mind repeating?"
                     )
         else:
-            ai_message = self.cold_call_response_chain.run(
+            ai_message = self.conversation_response_chain.run(
                 input="",
                 conversation_stage=self.conversation_stage,
                 conversation_history=self.conversation_history,
@@ -195,9 +195,9 @@ class FinancialAdvisorGPT(Chain, BaseModel):
                 source_of_contact=self.source_of_contact,
                 prospect_name=self.prospect_name,
             )
-            # self.conversation_history = self.cold_call_response_chain.memory.buffer
+            # self.conversation_history = self.conversation_response_chain.memory.buffer
             self.conversation_history = (
-                self.cold_call_response_chain.memory.load_memory_variables({})[
+                self.conversation_response_chain.memory.load_memory_variables({})[
                     "conversation_history"
                 ]
             )
@@ -223,7 +223,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
         if self.use_tools:
             self.conversation_history.append(ai_message)
         else:
-            self.cold_call_response_chain.memory.chat_memory.add_ai_message(
+            self.conversation_response_chain.memory.chat_memory.add_ai_message(
                 ai_message.removeprefix(agent_name + ": ")
             )
 
@@ -232,8 +232,8 @@ class FinancialAdvisorGPT(Chain, BaseModel):
     @classmethod
     def from_llm(
         cls, llm: BaseLLM, verbose: bool = False, **kwargs
-    ) -> "FinancialAdvisorGPT":
-        """Initialize the FinancialAdvisorGPT Controller."""
+    ) -> "InvestmentAdvisorGPT":
+        """Initialize the InvestmentAdvisorGPT Controller."""
         # ref: https://stackoverflow.com/questions/76941870/valueerror-one-input-key-expected-got-text-one-text-two-in-langchain-wit
         memory = ConversationBufferWindowMemory(
             k=12,
@@ -243,7 +243,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
             input_key="input",
         )
         readonlymemory = ReadOnlySharedMemory(memory=memory)
-        cold_call_response_chain = ColdCallChain.from_llm(
+        conversation_response_chain = ConversationChain.from_llm(
             llm, memory=memory, verbose=verbose
         )
 
@@ -301,7 +301,7 @@ class FinancialAdvisorGPT(Chain, BaseModel):
 
         return cls(
             convo_stage_analyzer_chain=convo_stage_analyzer_chain,
-            cold_call_response_chain=cold_call_response_chain,
+            conversation_response_chain=conversation_response_chain,
             agent_chain=agent_chain,
             verbose=verbose,
             **kwargs,

@@ -4,6 +4,7 @@ from typing import List
 
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
+from langchain.chains.retrieval_qa.base import BaseRetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import PyPDFDirectoryLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -16,12 +17,11 @@ from langchain.vectorstores import Chroma
 ROOT_DIR = Path(__file__).absolute().parent.parent.parent
 
 
-def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
-    """_summary_
+def setup_knowledge_base(llm: BaseLLM) -> BaseRetrievalQA:
+    """Set up knowledge based on pdfs in data folder in root directory.
 
     Args:
-        llm (BaseLLM): _description_
-        prospectus (List[str]): _description_
+        llm (BaseLLM): Language model used for retrieval chain.
     """
 
     if "db" in os.listdir("."):
@@ -63,7 +63,7 @@ def get_tools():
     """
 
     llm = ChatOpenAI(temperature=0)
-    knowledge_base = setup_knowledge_base(llm, [])
+    knowledge_base = setup_knowledge_base(llm)
     search = GoogleSerperAPIWrapper(type="news")
     tools = [
         Tool(

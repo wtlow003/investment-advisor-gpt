@@ -26,8 +26,8 @@ CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE: str = """
     Conversation stage:
 """
 
-SALES_COLD_CALL_INIT_PROMPT_TEMPLATE: str = """
-    ### Sales Cold Call with Persona ###
+SALES_INTERACTION_INIT_PROMPT_TEMPLATE: str = """
+    ### Sales Call/Text with Persona ###
 
     **Persona Traits: Assertive, Extroverted, Optimistic, Confident**`
 

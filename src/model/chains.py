@@ -1,8 +1,10 @@
 from langchain import LLMChain, PromptTemplate
 from langchain.llms import BaseLLM
 from langchain.memory.chat_memory import BaseChatMemory
-from templates.chains import (CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
-                              SALES_COLD_CALL_INIT_PROMPT_TEMPLATE)
+from templates.chains import (
+    CONVO_STAGE_ANALYZER_INIT_PROMPT_TEMPLATE,
+    SALES_INTERACTION_INIT_PROMPT_TEMPLATE,
+)
 
 
 class ConversationStageAnalyzerChain(LLMChain):
@@ -46,9 +48,9 @@ class ConversationStageAnalyzerChain(LLMChain):
         return self.__class__.__name__
 
 
-class ColdCallChain(LLMChain):
+class ConversationChain(LLMChain):
     """
-    Chain to generate the next response in the cold call interaction.
+    Chain to generate the next response in the interaction.
     """
 
     @classmethod
@@ -56,18 +58,18 @@ class ColdCallChain(LLMChain):
         cls, llm: BaseLLM, memory: BaseChatMemory, verbose: bool = True
     ) -> LLMChain:
         """
-        Create an instance of the ColdCallChain class from a given language model.
+        Create an instance of the ConversationChainclass from a given language model.
 
         Args:
             llm (BaseLLM): The language model to use.
             verbose (bool, optional): Flag to enable verbose mode. Defaults to True.
 
         Returns:
-            ColdCallChain: An instance of the ColdCallChain class.
+            ConversationChain: An instance of the ConversationChain class.
         """
-        cls.prompt_template = SALES_COLD_CALL_INIT_PROMPT_TEMPLATE
+        cls.prompt_template = SALES_INTERACTION_INIT_PROMPT_TEMPLATE
         prompt = PromptTemplate(
-            template=SALES_COLD_CALL_INIT_PROMPT_TEMPLATE,
+            template=SALES_INTERACTION_INIT_PROMPT_TEMPLATE,
             input_variables=[
                 "advisor_name",
                 "advisor_role",
