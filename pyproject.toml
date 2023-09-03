@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "financial-advisor-gpt"
+name = "investment-advisor-gpt"
 version = "0.1.0"
 description = ""
 authors = ["wtlow003 <wtlow003@suss.edu.sg>"]
