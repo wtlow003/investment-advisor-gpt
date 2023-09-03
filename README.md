@@ -96,6 +96,8 @@ In addition to using API calls, a UI is provided. The UI is developed using [Cha
 
 To visit the UI, you may access @ http://localhost:8080 after completing the relevant [installation](#installation).
 
+In any case where the UI takes some time to load on the browser, please `docker-compose down --remove-orphans && docker-compose up --build` again as the first call to the chat endpoint will be affected and will not display accordingly.
+
 ### Architecture
 
 The overall architecture of the application is as observed:
