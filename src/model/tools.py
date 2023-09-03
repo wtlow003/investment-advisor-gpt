@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import List
 
 from langchain.agents import Tool
@@ -10,6 +11,9 @@ from langchain.llms import BaseLLM
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.utilities import GoogleSerperAPIWrapper
 from langchain.vectorstores import Chroma
+
+# accessing ./data
+ROOT_DIR = Path(__file__).absolute().parent.parent.parent
 
 
 def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
@@ -25,9 +29,7 @@ def setup_knowledge_base(llm: BaseLLM, prospectus: List[str]):
             persist_directory="./db", embedding_function=OpenAIEmbeddings()
         )
     else:
-        loader = PyPDFDirectoryLoader(
-            "/Users/jensen/code/financial-advisor-gpt/data", silent_errors=True
-        )
+        loader = PyPDFDirectoryLoader(str(ROOT_DIR) + "/data", silent_errors=True)
         documents = loader.load()
         for doc in documents:
             source = (
