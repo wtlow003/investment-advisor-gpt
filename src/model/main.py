@@ -1,6 +1,6 @@
 import json
 
-from agents.controller import FinancialAdvisorGPT
+from agents.controller import InvestmentAdvisorGPT
 from dotenv import find_dotenv, load_dotenv
 from langchain.chat_models import ChatOpenAI
 
@@ -11,7 +11,7 @@ if __name__ == "__main__":
     with open("src/model/configs/examples/agent_singaporean_male.json") as f:
         configs = json.load(f)
 
-    advisor_agent = FinancialAdvisorGPT.from_llm(llm, **configs)
+    advisor_agent = InvestmentAdvisorGPT.from_llm(llm, **configs)  # type: ignore
     advisor_agent.seed_agent()
 
     while True:

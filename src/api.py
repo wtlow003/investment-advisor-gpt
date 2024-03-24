@@ -1,3 +1,4 @@
+from .model.agents.controller import InvestmentAdvisorGPT
 import json
 import logging
 import os
@@ -15,8 +16,6 @@ from fastapi.responses import JSONResponse
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 )
-
-from model.agents.controller import InvestmentAdvisorGPT
 
 
 class HealthCheck(BaseModel):

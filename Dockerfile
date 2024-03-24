@@ -15,11 +15,10 @@ RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install
 
-COPY ./src/fastapi /code/src/fastapi
-COPY ./src/model /code/src/model
+COPY ./src/ /code/src/
 COPY ./db /code/db
 COPY .env /code/.env
 
 EXPOSE 8000
 
-CMD poetry run uvicon src.fastapi.api:app --host 0.0.0.0
+CMD poetry run uvicorn src.fastapi.api:app --host 0.0.0.0
